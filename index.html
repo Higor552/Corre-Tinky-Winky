@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clone Dino Game</title>
+    <title>Corre Corre Telletubies</title>
     <style>
         body {
             display: flex;
@@ -12,7 +12,6 @@
             background-color: #f7f7f7;
             font-family: 'Courier New', Courier, monospace;
             margin-top: 50px;
-            /* NOVO: Impede que o usuário selecione os textos sem querer ao tocar na tela */
             user-select: none; 
             -webkit-user-select: none;
         }
@@ -26,13 +25,9 @@
             border-bottom: 2px solid #535353;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             cursor: pointer;
-            
-            /* NOVO: Torna o canvas responsivo */
             width: 100%; 
-            max-width: 600px; /* Não passa do tamanho original em PCs */
-            height: auto;     /* Mantém a proporção da imagem */
-            
-            /* NOVO: Impede o "puxar para recarregar" e rolagem ao arrastar o dedo no canvas */
+            max-width: 600px;
+            height: auto;
             touch-action: none; 
         }
 
@@ -47,9 +42,9 @@
 </head>
 <body>
 
-    <h1> Corre Twink Winky </h1>
+    <h1>Corre Corre Telletubies</h1>
     <canvas id="gameCanvas" width="600" height="200"></canvas>
-    <p id="instrucoes">Pressione <strong>Espaço</strong> ou <strong>Toque na tela</strong> para pular.</p>
+    <p id="instrucoes">Pressiona <strong>Espaço</strong> ou <strong>Toca no ecrã</strong> para saltar e começar a música.</p>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -60,13 +55,20 @@
         let frames = 0;
         let gameSpeed = 5;
 
-        // Imagens
+        // --- CONFIGURAÇÃO DE ÁUDIO ---
+        const bgMusic = new Audio('musica.mp3');
+        bgMusic.loop = true; // Faz a música repetir
+        let isMusicPlaying = false;
+
+        // Fundo
         const bgImage = new Image();
         bgImage.src = 'fundo.jpg'; 
         let bgX = 0;
 
+        // Lista de Personagens
+        const skins = ['dino1.png', 'dino2.png', 'dino3.png', 'dino4.png'];
         const dinoImage = new Image();
-        dinoImage.src = 'dino.png'; 
+        dinoImage.src = skins[Math.floor(Math.random() * skins.length)]; 
 
         function drawBackground() {
             ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
@@ -82,7 +84,7 @@
         const dino = {
             x: 50,
             y: 150,
-            width: 70, 
+            width: 60, 
             height: 90,
             dy: 0,
             jumpPower: 12,
@@ -171,6 +173,11 @@
             dino.y = canvas.height - dino.height;
             dino.dy = 0;
             bgX = 0; 
+
+            // Sorteia novo personagem ao reiniciar
+            const randomIndex = Math.floor(Math.random() * skins.length);
+            dinoImage.src = skins[randomIndex];
+
             update();
         }
 
@@ -182,7 +189,7 @@
                 ctx.font = 'bold 30px Courier New';
                 ctx.fillText('GAME OVER', canvas.width / 2 - 80, canvas.height / 2);
                 ctx.font = '15px Courier New';
-                ctx.fillText('Toque para reiniciar', canvas.width / 2 - 90, canvas.height / 2 + 30);
+                ctx.fillText('Toca para reiniciar', canvas.width / 2 - 90, canvas.height / 2 + 30);
                 return;
             }
 
@@ -202,13 +209,16 @@
             requestAnimationFrame(update);
         }
 
-        // --- CONTROLES ATUALIZADOS ---
-        
-        // Função universal para pular (usada no PC e Celular)
+        // --- CONTROLES ---
         function actionJump(e) {
-            // Se o evento existir, previne o comportamento padrão (como rolar a página ou dar zoom)
             if (e && e.cancelable) {
                 e.preventDefault(); 
+            }
+
+            // Inicia a música na primeira interação
+            if (!isMusicPlaying) {
+                bgMusic.play().catch(error => console.log("Erro ao tocar música:", error));
+                isMusicPlaying = true;
             }
             
             if (isGameOver) {
@@ -218,19 +228,16 @@
             }
         }
 
-        // Evento de Teclado (PC)
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 actionJump(e);
             }
         });
 
-        // Eventos de Toque e Clique em toda a janela (Celular e PC)
-        // Isso garante que tocar em qualquer lugar da tela pule o personagem
         window.addEventListener('mousedown', actionJump);
         window.addEventListener('touchstart', actionJump, { passive: false });
 
-        // Inicialização do Jogo
+        // Inicialização
         let imagesLoadedCount = 0;
         const totalImages = 2; 
 
@@ -243,8 +250,8 @@
 
         bgImage.onload = onImageLoaded;
         dinoImage.onload = onImageLoaded;
-
         dinoImage.onerror = onImageLoaded; 
+
     </script>
 </body>
 </html>
