@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clone Dino Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f7f7f7;
+            font-family: 'Courier New', Courier, monospace;
+            margin-top: 50px;
+            /* NOVO: Impede que o usuário selecione os textos sem querer ao tocar na tela */
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+        
+        h1 {
+            color: #535353;
+            text-align: center;
+        }
+
+        canvas {
+            border-bottom: 2px solid #535353;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            
+            /* NOVO: Torna o canvas responsivo */
+            width: 100%; 
+            max-width: 600px; /* Não passa do tamanho original em PCs */
+            height: auto;     /* Mantém a proporção da imagem */
+            
+            /* NOVO: Impede o "puxar para recarregar" e rolagem ao arrastar o dedo no canvas */
+            touch-action: none; 
+        }
+
+        #instrucoes {
+            margin-top: 15px;
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            padding: 0 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1> Corre Twink Winky </h1>
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+    <p id="instrucoes">Pressione <strong>Espaço</strong> ou <strong>Toque na tela</strong> para pular.</p>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isGameOver = false;
+        let score = 0;
+        let frames = 0;
+        let gameSpeed = 5;
+
+        // Imagens
+        const bgImage = new Image();
+        bgImage.src = 'fundo.jpg'; 
+        let bgX = 0;
+
+        const dinoImage = new Image();
+        dinoImage.src = 'dino.png'; 
+
+        function drawBackground() {
+            ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
+            ctx.drawImage(bgImage, bgX + canvas.width, 0, canvas.width, canvas.height);
+            
+            bgX -= gameSpeed * 0.5;
+            
+            if (bgX <= -canvas.width) {
+                bgX = 0;
+            }
+        }
+
+        const dino = {
+            x: 50,
+            y: 150,
+            width: 30, 
+            height: 50,
+            dy: 0,
+            jumpPower: 12,
+            gravity: 0.7,
+            grounded: false,
+
+            draw() {
+                if (dinoImage.complete) {
+                    ctx.drawImage(dinoImage, this.x, this.y, this.width, this.height);
+                } else {
+                    ctx.fillStyle = '#535353';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+            },
+
+            update() {
+                this.dy += this.gravity;
+                this.y += this.dy;
+
+                if (this.y + this.height >= canvas.height) {
+                    this.y = canvas.height - this.height;
+                    this.dy = 0;
+                    this.grounded = true;
+                } else {
+                    this.grounded = false;
+                }
+                
+                this.draw();
+            },
+
+            jump() {
+                if (this.grounded) {
+                    this.dy = -this.jumpPower;
+                    this.grounded = false;
+                }
+            }
+        };
+
+        const obstacles = [];
+
+        function handleObstacles() {
+            if (frames % 90 === 0) {
+                let obstacleHeight = 20 + Math.random() * 30;
+                obstacles.push({
+                    x: canvas.width,
+                    y: canvas.height - obstacleHeight,
+                    width: 20,
+                    height: obstacleHeight
+                });
+            }
+
+            for (let i = 0; i < obstacles.length; i++) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+                
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                if (dino.x < obs.x + obs.width &&
+                    dino.x + dino.width > obs.x &&
+                    dino.y < obs.y + obs.height &&
+                    dino.y + dino.height > obs.y) {
+                    isGameOver = true;
+                }
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    i--;
+                }
+            }
+        }
+
+        function drawScore() {
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 20px Courier New';
+            ctx.fillText(`Score: ${score}`, canvas.width - 150, 30);
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            score = 0;
+            frames = 0;
+            gameSpeed = 5;
+            obstacles.length = 0;
+            dino.y = canvas.height - dino.height;
+            dino.dy = 0;
+            bgX = 0; 
+            update();
+        }
+
+        function update() {
+            if (isGameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 30px Courier New';
+                ctx.fillText('GAME OVER', canvas.width / 2 - 80, canvas.height / 2);
+                ctx.font = '15px Courier New';
+                ctx.fillText('Toque para reiniciar', canvas.width / 2 - 90, canvas.height / 2 + 30);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            dino.update();
+            handleObstacles();
+            drawScore();
+
+            frames++;
+            
+            if (frames % 500 === 0) {
+                gameSpeed += 0.5;
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // --- CONTROLES ATUALIZADOS ---
+        
+        // Função universal para pular (usada no PC e Celular)
+        function actionJump(e) {
+            // Se o evento existir, previne o comportamento padrão (como rolar a página ou dar zoom)
+            if (e && e.cancelable) {
+                e.preventDefault(); 
+            }
+            
+            if (isGameOver) {
+                resetGame();
+            } else {
+                dino.jump();
+            }
+        }
+
+        // Evento de Teclado (PC)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                actionJump(e);
+            }
+        });
+
+        // Eventos de Toque e Clique em toda a janela (Celular e PC)
+        // Isso garante que tocar em qualquer lugar da tela pule o personagem
+        window.addEventListener('mousedown', actionJump);
+        window.addEventListener('touchstart', actionJump, { passive: false });
+
+        // Inicialização do Jogo
+        let imagesLoadedCount = 0;
+        const totalImages = 2; 
+
+        function onImageLoaded() {
+            imagesLoadedCount++;
+            if (imagesLoadedCount === totalImages) {
+                update(); 
+            }
+        }
+
+        bgImage.onload = onImageLoaded;
+        dinoImage.onload = onImageLoaded;
+
+        dinoImage.onerror = onImageLoaded; 
+    </script>
+</body>
+</html>
